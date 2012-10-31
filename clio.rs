@@ -3,13 +3,30 @@ extern mod amulet;
 use option::{None, Option, Some};
 use rand::task_rng;
 
+use amulet::ll;
+
 fn main() {
     let map = generate_map();
 
     let window = amulet::ll::init_screen();
 
-    for map.grid.eachi |x, col| {
-        for col.eachi |y, tile| {
+    loop {
+        draw_map(window, map);
+        match window.read_key() {
+            ll::Character('q') => return,
+            ll::SpecialKey(ll::KEY_UP) => { move_player(map, 0, -1); }
+            ll::SpecialKey(ll::KEY_DOWN) => { move_player(map, 0, 1); }
+            ll::SpecialKey(ll::KEY_LEFT) => { move_player(map, -1, 0); }
+            ll::SpecialKey(ll::KEY_RIGHT) => { move_player(map, 1, 0); }
+            _ => {},
+        }
+    }
+}
+
+fn draw_map(window: &amulet::ll::Window, map: @Map) {
+    for uint::range(0, map.grid.len()) |x| {
+        for uint::range(0, map.grid[x].len()) |y| {
+            let tile = map.grid[x][y];
             window.mv(y, x);
             let disp = match tile.creature {
                 Some(creature) => creature.proto.display,
@@ -18,21 +35,37 @@ fn main() {
             window.print(fmt!("%c", disp));
         }
     }
+
+    // Stick the cursor on the player
     match map.player.position {
         (x, y) => window.mv(y, x),
     }
 
     window.repaint();
-    window.getch();
+}
+
+fn move_player(map: &Map, dx: int, dy: int) {
+    let (x, y) = map.player.position;
+    let new_x = (x as int + dx) as uint;
+    let new_y = (y as int + dy) as uint;
+    // TODO point type?
+    // TODO check in bounds...
+    let target_tile = map.grid[new_x][new_y];
+    if target_tile.architecture.is_passable() && target_tile.creature.is_none() {
+        map.player.position = (new_x, new_y);
+        map.grid[x][y].creature = None;
+        map.grid[new_x][new_y].creature = Some(map.player);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 struct Map {
-    mut grid: ~[~[Tile]],
+    mut grid: ~[~[@Tile]],
     mut player: @Entity,
+    // TODO explicit size
 }
-fn generate_map() -> ~Map {
+fn generate_map() -> @Map {
     let width = 80;
     let height = 24;
 
@@ -57,7 +90,7 @@ fn generate_map() -> ~Map {
                     &FLOOR
                 }
             ;
-            Tile{ architecture: @Entity{ proto: proto, position: (x, y) }, creature: None }
+            @Tile{ architecture: @Entity{ proto: proto, position: (x, y) }, creature: None }
         })
     });
 
@@ -66,7 +99,7 @@ fn generate_map() -> ~Map {
     let player = @Entity{ proto: &PLAYER, position: (player_x, player_y) };
     grid[player_x][player_y].creature = Some(player);
 
-    return ~Map{ grid: grid, player: player };
+    return @Map{ grid: grid, player: player };
 }
 
 impl Map {
@@ -76,13 +109,13 @@ impl Map {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct Tile {
-    architecture: @Entity,
-    creature: Option<@Entity>,
+    mut architecture: @Entity,
+    mut creature: Option<@Entity>,
 }
 
 struct Entity {
     proto: &Prototype,
-    position: (uint, uint),
+    mut position: (uint, uint),
 }
 impl Entity {
     // PHYSICS
