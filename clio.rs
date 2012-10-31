@@ -1,27 +1,34 @@
 extern mod amulet;
 
+use option::{None, Option, Some};
+
 fn main() {
     let mut map = vec::from_fn(10, |i| {
         vec::from_fn(10, |j| {
             if i == 0 || i == 9 || j == 0 || j == 9 {
-                Tile{ object: option::Some(~WALL) }
+                Tile{ architecture: ~Entity{ proto: &WALL, position: (i, j) }, creature: None }
             }
             else {
-                Tile{ object: option::Some(~FLOOR) }
+                Tile{ architecture: ~Entity{ proto: &FLOOR, position: (i, j) }, creature: None }
             }
         })
     });
 
-    map[3][3] = Tile{ object: option::Some(~PLAYER) };
+    map[3][3].creature = Some(~Entity{ proto: &PLAYER, position: (3, 3) });
 
     let window = amulet::ll::init_screen();
 
     for map.eachi |i, row| {
         for row.eachi |j, tile| {
             window.mv(i, j);
-            window.print(fmt!("%c", tile.object.get().display));
+            let disp = match tile.creature {
+                Some(creature) => creature.proto.display,
+                None => tile.architecture.proto.display,
+            };
+            window.print(fmt!("%c", disp));
         }
     }
+    window.mv(3, 3);
 
     window.repaint();
     window.getch();
@@ -29,10 +36,28 @@ fn main() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+/*
+struct World {
+}
+*/
+
+////////////////////////////////////////////////////////////////////////////////
+
 struct Tile {
-    object: option::Option<~Prototype>,
+    architecture: ~Entity,
+    creature: Option<~Entity>,
 }
 
+struct Entity {
+    proto: &Prototype,
+    position: (uint, uint),
+}
+impl Entity {
+    // PHYSICS
+    fn is_passable() -> bool {
+        return self.proto.passable;
+    }
+}
 
 
 struct Prototype {
