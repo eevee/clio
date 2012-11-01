@@ -9,10 +9,30 @@ fn main() {
     let window = amulet::ll::init_screen();
     window.hide_cursor();
 
+    // NOTE: this has to be after the init_screen call, because curses is
+    // stupid, and initializing the screen wrecks all the color pairs.
     let map = generate_map();
 
+    // Create a persistent status area
+    let status_window = amulet::ll::new_window(0, 0, 0, map.width());
+
     loop {
+        // Display
         draw_map(window, map);
+
+        status_window.clear();
+        let tile = map.player_tile();
+        if tile.items.len() > 0 {
+            status_window.mv(0, 0);
+            status_window.print("you see here:");
+            status_window.mv(1, 4);
+            for uint::range(0, tile.items.len()) |i| {
+                status_window.print("an item");
+            }
+        }
+        status_window.repaint();
+
+        // Input loop
         match window.read_key() {
             ll::Character('q') => return,
             ll::SpecialKey(ll::KEY_UP) => { move_player(map, 0, -1); }
@@ -130,6 +150,11 @@ impl Map {
     fn height() -> uint {
         let (_width, height) = self.size;
         return height;
+    }
+
+    fn player_tile() -> @Tile {
+        let (x, y) = self.player.position;
+        return self.grid[x][y];
     }
 }
 
