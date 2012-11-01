@@ -14,7 +14,7 @@ fn main() {
     // Create a persistent status area
     let status_window = amulet::ll::new_window(0, 0, 0, map.width());
     let message_window = amulet::ll::new_window(0, 80, 24, 0);
-    message_window.print("welcome!");
+    message_window.print("welcome!\n");
 
     loop {
         // Display
@@ -22,11 +22,17 @@ fn main() {
 
         status_window.clear();
         status_window.print(fmt!("⌛ %u", map.clock));
+        status_window.mv(1, 0);
+        status_window.print("inventory: ");
+        for uint::range(0, map.player.contents.len()) |i| {
+            let proto = map.player.contents[i].proto;
+            status_window.attrprint(fmt!("%c", proto.display), proto.style);
+        }
         let tile = map.player_tile();
         if tile.items.len() > 0 {
-            status_window.mv(1, 0);
+            status_window.mv(2, 0);
             status_window.print("you see here:");
-            status_window.mv(2, 4);
+            status_window.mv(3, 4);
             for uint::range(0, tile.items.len()) |i| {
                 status_window.print("an item");
             }
@@ -42,6 +48,16 @@ fn main() {
             ll::SpecialKey(ll::KEY_DOWN) => { map.move_player(0, 1); }
             ll::SpecialKey(ll::KEY_LEFT) => { map.move_player(-1, 0); }
             ll::SpecialKey(ll::KEY_RIGHT) => { map.move_player(1, 0); }
+            ll::Character(',') => {
+                let player_tile = map.player_tile();
+                if player_tile.items.len() > 0 {
+                    map.player.contents += player_tile.items;
+                    player_tile.items = ~[];
+                }
+                else {
+                    message_window.print("nothing here...\n");
+                }
+            }
             _ => {},
         }
 

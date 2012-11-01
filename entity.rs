@@ -3,6 +3,7 @@ use amulet::ll;
 struct Entity {
     proto: @Prototype,
     mut position: (uint, uint),
+    mut contents: ~[@Entity],
 }
 impl Entity {
     // PHYSICS

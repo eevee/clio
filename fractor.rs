@@ -41,13 +41,13 @@ fn generate_map() -> @Map {
                     FLOOR
                 }
             ;
-            @Tile{ architecture: @Entity{ proto: proto, position: (x, y) }, creature: None, items: ~[] }
+            @Tile{ architecture: @Entity{ proto: proto, position: (x, y), contents: ~[] }, creature: None, items: ~[] }
         })
     });
 
     let player_x = task_rng().gen_uint_range(room_x + 1, room_x + room_width - 1);
     let player_y = task_rng().gen_uint_range(room_y + 1, room_y + room_height - 1);
-    let player = @Entity{ proto: PLAYER, position: (player_x, player_y) };
+    let player = @Entity{ proto: PLAYER, position: (player_x, player_y), contents: ~[] };
     grid[player_x][player_y].creature = Some(player);
 
     loop {
@@ -56,14 +56,14 @@ fn generate_map() -> @Map {
         if enemy_x == player_x && enemy_y == player_y {
             loop;
         }
-        let enemy = @Entity{ proto: ENEMY, position: (enemy_x, enemy_y) };
+        let enemy = @Entity{ proto: ENEMY, position: (enemy_x, enemy_y), contents: ~[] };
         grid[enemy_x][enemy_y].creature = Some(enemy);
         break;
     }
 
     let scroll_x = task_rng().gen_uint_range(room_x + 1, room_x + room_width - 1);
     let scroll_y = task_rng().gen_uint_range(room_y + 1, room_y + room_height - 1);
-    let scroll = @Entity{ proto: SCROLL, position: (scroll_x, scroll_y) };
+    let scroll = @Entity{ proto: SCROLL, position: (scroll_x, scroll_y), contents: ~[] };
     grid[scroll_x][scroll_y].items.push(scroll);
 
     return @Map{ size: (width, height), grid: grid, player: player, clock: 0 };
