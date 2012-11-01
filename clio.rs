@@ -7,6 +7,7 @@ use amulet::ll;
 
 fn main() {
     let window = amulet::ll::init_screen();
+    window.hide_cursor();
 
     let map = generate_map();
 
@@ -24,13 +25,20 @@ fn main() {
 }
 
 fn draw_map(window: &amulet::ll::Window, map: @Map) {
-    for uint::range(0, map.grid.len()) |x| {
-        for uint::range(0, map.grid[x].len()) |y| {
+    for uint::range(0, map.width()) |x| {
+        for uint::range(0, map.height()) |y| {
             let tile = map.grid[x][y];
             window.mv(y, x);
             let proto = match tile.creature {
                 Some(creature) => creature.proto,
-                None => tile.architecture.proto,
+                None => {
+                    if tile.items.len() > 0 {
+                        tile.items[0].proto
+                    }
+                    else {
+                        tile.architecture.proto
+                    }
+                }
             };
             window.attrprint(fmt!("%c", proto.display), proto.style);
         }
@@ -61,16 +69,17 @@ fn move_player(map: &Map, dx: int, dy: int) {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct Map {
+    size: (uint, uint),
     mut grid: ~[~[@Tile]],
     mut player: @Entity,
-    // TODO explicit size
 }
 fn generate_map() -> @Map {
     // TODO oh fuck, these can't be constants if they have generated Styles in them.  WHOOPS
     let SOLID_ROCK: @Prototype = @Prototype{ display: ' ', style: ll::Style(), passable: false };
-    let WALL: @Prototype = @Prototype{ display: '▒', style: ll::Style().fg(7), passable: false };
-    let FLOOR: @Prototype = @Prototype{ display: '·', style: ll::Style().fg(8).bg(0), passable: true };
-    let PLAYER: @Prototype = @Prototype{ display: '☻', style: ll::Style().fg(0), passable: false };
+    let WALL: @Prototype = @Prototype{ display: '▒', style: ll::Style().fg(8), passable: false };
+    let FLOOR: @Prototype = @Prototype{ display: '·', style: ll::Style().fg(8), passable: true };
+    let PLAYER: @Prototype = @Prototype{ display: '☻', style: ll::Style().fg(4), passable: false };
+    let SCROLL: @Prototype = @Prototype{ display: '?', style: ll::Style().bold(), passable: true };
 
     let width = 80;
     let height = 24;
@@ -96,7 +105,7 @@ fn generate_map() -> @Map {
                     FLOOR
                 }
             ;
-            @Tile{ architecture: @Entity{ proto: proto, position: (x, y) }, creature: None }
+            @Tile{ architecture: @Entity{ proto: proto, position: (x, y) }, creature: None, items: ~[] }
         })
     });
 
@@ -105,10 +114,23 @@ fn generate_map() -> @Map {
     let player = @Entity{ proto: PLAYER, position: (player_x, player_y) };
     grid[player_x][player_y].creature = Some(player);
 
-    return @Map{ grid: grid, player: player };
+    let scroll_x = task_rng().gen_uint_range(room_x + 1, room_x + room_width - 1);
+    let scroll_y = task_rng().gen_uint_range(room_y + 1, room_y + room_height - 1);
+    let scroll = @Entity{ proto: SCROLL, position: (scroll_x, scroll_y) };
+    grid[scroll_x][scroll_y].items.push(scroll);
+
+    return @Map{ size: (width, height), grid: grid, player: player };
 }
 
 impl Map {
+    fn width() -> uint {
+        let (width, _height) = self.size;
+        return width;
+    }
+    fn height() -> uint {
+        let (_width, height) = self.size;
+        return height;
+    }
 }
 
 
@@ -117,6 +139,7 @@ impl Map {
 struct Tile {
     mut architecture: @Entity,
     mut creature: Option<@Entity>,
+    mut items: ~[@Entity],
 }
 
 struct Entity {
@@ -136,5 +159,4 @@ struct Prototype {
     style: ll::Style,
     passable: bool,
 }
-
 
