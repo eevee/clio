@@ -1,0 +1,11 @@
+#[link(name = "clio", vers = "0.0", author = "eevee")];
+#[comment = "A cool roguelike."];
+#[crate_type = "executable"];
+
+extern mod amulet;
+
+mod display;
+mod entity;
+mod fractor;
+mod main;
+mod world;
