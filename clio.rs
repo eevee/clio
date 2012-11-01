@@ -15,22 +15,27 @@ fn main() {
 
     // Create a persistent status area
     let status_window = amulet::ll::new_window(0, 0, 0, map.width());
+    let message_window = amulet::ll::new_window(0, 80, 24, 0);
+    message_window.print("welcome!");
 
     loop {
         // Display
         draw_map(window, map);
 
         status_window.clear();
+        status_window.print(fmt!("⌛ %u", map.clock));
         let tile = map.player_tile();
         if tile.items.len() > 0 {
-            status_window.mv(0, 0);
+            status_window.mv(1, 0);
             status_window.print("you see here:");
-            status_window.mv(1, 4);
+            status_window.mv(2, 4);
             for uint::range(0, tile.items.len()) |i| {
                 status_window.print("an item");
             }
         }
         status_window.repaint();
+
+        message_window.repaint();
 
         // Input loop
         match window.read_key() {
@@ -41,6 +46,9 @@ fn main() {
             ll::SpecialKey(ll::KEY_RIGHT) => { move_player(map, 1, 0); }
             _ => {},
         }
+
+        // TODO only advance clock if the player actually does something
+        map.clock += 1;
     }
 }
 
@@ -92,6 +100,9 @@ struct Map {
     size: (uint, uint),
     mut grid: ~[~[@Tile]],
     mut player: @Entity,
+
+    // TODO this goes on the world, really.
+    mut clock: uint,
 }
 fn generate_map() -> @Map {
     // TODO oh fuck, these can't be constants if they have generated Styles in them.  WHOOPS
@@ -100,6 +111,7 @@ fn generate_map() -> @Map {
     let FLOOR: @Prototype = @Prototype{ display: '·', style: ll::Style().fg(8), passable: true };
     let PLAYER: @Prototype = @Prototype{ display: '☻', style: ll::Style().fg(4), passable: false };
     let SCROLL: @Prototype = @Prototype{ display: '?', style: ll::Style().bold(), passable: true };
+    let ENEMY: @Prototype = @Prototype{ display: 'a', style: ll::Style().fg(1).bold(), passable: true };
 
     let width = 80;
     let height = 24;
@@ -134,12 +146,23 @@ fn generate_map() -> @Map {
     let player = @Entity{ proto: PLAYER, position: (player_x, player_y) };
     grid[player_x][player_y].creature = Some(player);
 
+    loop {
+        let enemy_x = task_rng().gen_uint_range(room_x + 1, room_x + room_width - 1);
+        let enemy_y = task_rng().gen_uint_range(room_y + 1, room_y + room_height - 1);
+        if enemy_x == player_x && enemy_y == player_y {
+            loop;
+        }
+        let enemy = @Entity{ proto: ENEMY, position: (enemy_x, enemy_y) };
+        grid[enemy_x][enemy_y].creature = Some(enemy);
+        break;
+    }
+
     let scroll_x = task_rng().gen_uint_range(room_x + 1, room_x + room_width - 1);
     let scroll_y = task_rng().gen_uint_range(room_y + 1, room_y + room_height - 1);
     let scroll = @Entity{ proto: SCROLL, position: (scroll_x, scroll_y) };
     grid[scroll_x][scroll_y].items.push(scroll);
 
-    return @Map{ size: (width, height), grid: grid, player: player };
+    return @Map{ size: (width, height), grid: grid, player: player, clock: 0 };
 }
 
 impl Map {
