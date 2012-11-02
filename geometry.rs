@@ -1,6 +1,6 @@
 struct Point {
-    x: uint,
-    y: uint,
+    x: int,
+    y: int,
 }
 impl Point {
 }
@@ -8,8 +8,16 @@ impl Point {
 impl Point: Sub<Point, Offset> {
     pure fn sub(other: &Point) -> Offset {
         return Offset{
-            dx: self.x as int - other.x as int,
-            dy: self.y as int - other.y as int,
+            dx: self.x - other.x,
+            dy: self.y - other.y,
+        }
+    }
+}
+impl Point: Add<Offset, Point> {
+    pure fn add(other: &Offset) -> Point {
+        return Point{
+            x: self.x + other.dx,
+            y: self.y + other.dy,
         }
     }
 }
@@ -75,4 +83,23 @@ struct Rectangle {
     size: Size,
 }
 impl Rectangle {
+    fn bottomright() -> Point {
+        return Point{
+            x: self.topleft.x + self.size.width as int,
+            y: self.topleft.y + self.size.height as int,
+        };
+    }
+
+    fn contains(point: &Point) -> bool {
+        if point.x < self.topleft.x || point.y < self.topleft.y {
+            return false;
+        }
+
+        let bottomright = self.bottomright();
+        if point.x > bottomright.x || point.y > bottomright.y {
+            return false;
+        }
+
+        return true;
+    }
 }

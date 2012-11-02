@@ -16,4 +16,7 @@ trait Interface {
 
     /** Show a game message to the player. */
     fn message(s: &str);
+
+    /** End the game */
+    fn end();
 }

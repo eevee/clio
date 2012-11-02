@@ -3,6 +3,7 @@ use rand::task_rng;
 use amulet::ll;
 use amulet::ll::Style;
 
+use geometry::Offset;
 use geometry::Point;
 use interface::Interface;
 use world::World;
@@ -153,10 +154,25 @@ struct AttackAction {
     target: @Entity,
 }
 impl AttackAction: Action {
-    fn execute(_world: &World, interface: @Interface) {
-        self.target.health -= 1;
+    fn execute(world: &World, interface: @Interface) {
         if ptr::ref_eq(self.target.proto, &PLAYER) {
-            interface.message("ouch!");
+            interface.message("it hits you!");
+        }
+        else if ptr::ref_eq(self.actor.proto, &PLAYER) {
+            interface.message("you hit it!");
+        }
+
+        self.target.health -= 1;
+
+        if self.target.health == 0 {
+            if ptr::ref_eq(self.target.proto, &PLAYER) {
+                interface.message("you die...");
+                interface.end();
+            }
+            else {
+                interface.message("it dies");
+                world.map.remove_entity(self.target);
+            }
         }
     }
 }
@@ -164,13 +180,11 @@ impl AttackAction: Action {
 /** `actor` moves by some amount. */
 struct MoveAction {
     actor: @Entity,
-    offset: (int, int),
+    offset: Offset,
 }
 impl MoveAction: Action {
     fn execute(world: &World, _interface: @Interface) {
-        match self.offset {
-            (x, y) => world.map.move_entity(self.actor, x, y),
-        }
+        world.map.move_entity(self.actor, self.offset.dx, self.offset.dy);
     }
 }
 

@@ -4,8 +4,10 @@ use amulet::ll::Window;
 
 use entity::Entity;
 use entity::Action;
+use entity::AttackAction;
 use entity::MoveAction;
 use entity::WaitAction;
+use geometry::Offset;
 use interface::Interface;
 use world::Map;
 use world::World;
@@ -42,10 +44,10 @@ impl TerminalInterface: Interface {
 
                 ll::Character('.') => return WaitAction{ actor: map.player } as Action,
 
-                ll::SpecialKey(ll::KEY_UP) => return MoveAction{ actor: map.player, offset: (0, -1) } as Action,
-                ll::SpecialKey(ll::KEY_DOWN) => return MoveAction{ actor: map.player, offset: (0, 1) } as Action,
-                ll::SpecialKey(ll::KEY_LEFT) => return MoveAction{ actor: map.player, offset: (-1, 0) } as Action,
-                ll::SpecialKey(ll::KEY_RIGHT) => return MoveAction{ actor: map.player, offset: (1, 0) } as Action,
+                ll::SpecialKey(ll::KEY_UP) => return self.pick_direction_action(world, Offset{ dx: 0, dy: -1 }),
+                ll::SpecialKey(ll::KEY_DOWN) => return self.pick_direction_action(world, Offset{ dx: 0, dy: 1 }),
+                ll::SpecialKey(ll::KEY_LEFT) => return self.pick_direction_action(world, Offset{ dx: -1, dy: 0 }),
+                ll::SpecialKey(ll::KEY_RIGHT) => return self.pick_direction_action(world, Offset{ dx: 1, dy: 0 }),
 
                 // TODO this is not an action
                 ll::Character(',') => {
@@ -61,6 +63,23 @@ impl TerminalInterface: Interface {
                 _ => {},
             }
         }
+    }
+
+    fn pick_direction_action(world: &World, direction: Offset) -> Action {
+        let player = world.map.player;
+        let maybe_tile = world.map.tile_relative(player, direction);
+        match maybe_tile {
+            Some(tile) => {
+                match tile.creature {
+                    Some(creature) => {
+                        return AttackAction{ actor: player, target: creature } as Action;
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+        return MoveAction{ actor: player, offset: direction } as Action;
     }
 
 
@@ -140,5 +159,10 @@ impl TerminalInterface: Interface {
 
     fn draw_messages(_world: &World) {
         self.message_window.repaint();
+    }
+
+    fn end() {
+        self.main_window.read_key();
+        libc::exit(0);
     }
 }

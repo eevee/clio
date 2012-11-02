@@ -1,22 +1,32 @@
+use option::{Option, None, Some};
+
 use interface::Interface;
 use entity::Entity;
+use entity::Nowhere;
 use entity::OnFloor;
 use fractor::generate_map;
+use geometry::Offset;
 use geometry::Point;
+use geometry::Rectangle;
+use geometry::Size;
 
 struct Map {
-    size: (uint, uint),
+    size: Size,
     mut grid: ~[~[@Tile]],
     mut player: @Entity,
 }
 impl Map {
     fn width() -> uint {
-        let (width, _height) = self.size;
-        return width;
+        return self.size.width;
     }
     fn height() -> uint {
-        let (_width, height) = self.size;
-        return height;
+        return self.size.height;
+    }
+    fn bounds() -> Rectangle {
+        return Rectangle{
+            topleft: Point{ x: 0, y: 0 },
+            size: self.size,
+        };
     }
 
     fn player_tile() -> @Tile {
@@ -27,12 +37,46 @@ impl Map {
             _ => fail,
         }
     }
+    fn tile_relative(source: @Entity, offset: Offset) -> Option<@Tile> {
+        let point = match source.location {
+            OnFloor(pt) => pt,
+            _ => fail,
+        };
+        let new_point = point + offset;
+
+        if self.bounds().contains(&new_point) {
+            return Some(self.grid[new_point.x][new_point.y])
+        }
+        else {
+            return None;
+        }
+    }
+
+    fn remove_entity(entity: @Entity) {
+        match entity.location {
+            OnFloor(copy point) => {
+                let tile = self.grid[point.x][point.y];
+                match tile.creature {
+                    Some(copy creature) if box::ptr_eq(entity, creature) => {
+                        entity.location = Nowhere;
+                        tile.creature = None;
+                    }
+                    _ => {
+                        fail ~"Entity not where it claimed to be!";
+                    }
+                }
+            }
+            _ => {
+                fail ~"Don't know how to remove this entity";
+            }
+        }
+    }
 
     fn move_entity(entity: @Entity, dx: int, dy: int) {
         match entity.location {
             OnFloor(copy point) => {
-                let new_x = (point.x as int + dx) as uint;
-                let new_y = (point.y as int + dy) as uint;
+                let new_x = point.x + dx;
+                let new_y = point.y + dy;
                 // TODO point type?
                 // TODO check in bounds...
                 let target_tile = self.grid[new_x][new_y];
@@ -93,6 +137,13 @@ impl World {
         // Advance time indefinitely, one loop at a...  time
         loop {
             for actors.each |actor| {
+                // Skip actors that no longer exist
+                // TODO yeah this sucks  :D
+                match actor.location {
+                    Nowhere => loop,
+                    _ => {},
+                }
+
                 while actor.spent_subtics < TIC_SIZE {
                     match actor.act(self, interface) {
                         Some(action) => action.execute(self, interface),

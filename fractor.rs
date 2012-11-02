@@ -8,6 +8,7 @@ use entity::Entity;
 use entity::OnFloor;
 use entity::Prototype;
 use geometry::Point;
+use geometry::Size;
 use world::Map;
 use world::Tile;
 
@@ -24,7 +25,7 @@ fn generate_map() -> @Map {
     let mut grid = vec::from_fn(width, |x| {
         vec::from_fn(height, |y| {
             let entity =
-                if x < room_x || y < room_y || x >= room_x + room_width  || y >= room_y + room_height {
+                if x < room_x || y < room_y || x >= room_x + room_width || y >= room_y + room_height {
                     // Outside the room
                     entity::ROCKFACE.make_entity()
                 }
@@ -37,7 +38,7 @@ fn generate_map() -> @Map {
                     entity::FLOOR.make_entity()
                 }
             ;
-            entity.location = entity::OnFloor(Point{ x: x, y: y });
+            entity.location = entity::OnFloor(Point{ x: x as int, y: y as int });
             @Tile{ architecture: entity, creature: None, items: ~[] }
         })
     });
@@ -45,7 +46,7 @@ fn generate_map() -> @Map {
     let player_x = task_rng().gen_uint_range(room_x + 1, room_x + room_width - 1);
     let player_y = task_rng().gen_uint_range(room_y + 1, room_y + room_height - 1);
     let player = entity::PLAYER.make_entity();
-    player.location = entity::OnFloor(Point{ x: player_x, y: player_y });
+    player.location = entity::OnFloor(Point{ x: player_x as int, y: player_y as int });
     grid[player_x][player_y].creature = Some(player);
 
     loop {
@@ -55,7 +56,7 @@ fn generate_map() -> @Map {
             loop;
         }
         let enemy = entity::ENEMY.make_entity();
-        enemy.location = OnFloor(Point{ x: enemy_x, y: enemy_y });
+        enemy.location = OnFloor(Point{ x: enemy_x as int, y: enemy_y as int });
         grid[enemy_x][enemy_y].creature = Some(enemy);
         break;
     }
@@ -63,8 +64,8 @@ fn generate_map() -> @Map {
     let scroll_x = task_rng().gen_uint_range(room_x + 1, room_x + room_width - 1);
     let scroll_y = task_rng().gen_uint_range(room_y + 1, room_y + room_height - 1);
     let scroll = entity::SCROLL.make_entity();
-    scroll.location = OnFloor(Point{ x: scroll_x, y: scroll_y });
+    scroll.location = OnFloor(Point{ x: scroll_x as int, y: scroll_y as int });
     grid[scroll_x][scroll_y].items.push(scroll);
 
-    return @Map{ size: (width, height), grid: grid, player: player };
+    return @Map{ size: Size{ width: width, height: height }, grid: grid, player: player };
 }
