@@ -6,6 +6,7 @@ extern mod amulet;
 
 mod entity;
 mod fractor;
+mod geometry;
 mod interface {
     mod terminal;
 }

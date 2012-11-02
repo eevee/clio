@@ -1,6 +1,9 @@
+use rand::task_rng;
+
 use amulet::ll;
 use amulet::ll::Style;
 
+use geometry::Point;
 use interface::Interface;
 use world::World;
 
@@ -82,7 +85,7 @@ impl &static/Prototype {
 
 pub enum Location {
     Nowhere,
-    OnFloor(uint, uint),
+    OnFloor(Point),
     InContainer,
 }
 
@@ -109,35 +112,29 @@ impl @Entity {
             return Some(interface.next_action(world));
         }
 
-        let (my_x, my_y) = match self.location {
-            OnFloor(x, y) => (x, y),
+        let me_point = match self.location {
+            OnFloor(pt) => pt,
             _ => fail,
         };
-        let (plr_x, plr_y) = match player.location {
-            OnFloor(x, y) => (x, y),
+        let player_point = match player.location {
+            OnFloor(pt) => pt,
             _ => fail,
         };
 
-        let dx = plr_x as int - my_x as int;
-        let dy = plr_y as int - my_y as int;
+        let distance = player_point - me_point;
 
         // If the player is adjacent, attack!
-        if dx * dy == 0 && int::abs(dx + dy) == 1 {
+        if distance.is_adjacent() {
             return Some(AttackAction{ actor: self, target: player } as Action);
         }
 
-        // Otherwise, approach
-        if dx < 0 {
-            world.map.move_entity(self, -1, 0);
+        // Otherwise, approach!  Pick direction at random.
+        let which = task_rng().gen_uint_range(0, distance.taxicab_length());
+        if which < distance.x_mag() {
+            world.map.move_entity(self, distance.x_dir(), 0);
         }
-        else if dx > 0 {
-            world.map.move_entity(self, 1, 0);
-        }
-        else if dy < 0 {
-            world.map.move_entity(self, 0, -1);
-        }
-        else if dy > 0 {
-            world.map.move_entity(self, 0, 1);
+        else {
+            world.map.move_entity(self, 0, distance.y_dir());
         }
 
         return None;

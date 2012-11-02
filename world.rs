@@ -2,6 +2,7 @@ use interface::Interface;
 use entity::Entity;
 use entity::OnFloor;
 use fractor::generate_map;
+use geometry::Point;
 
 struct Map {
     size: (uint, uint),
@@ -20,8 +21,8 @@ impl Map {
 
     fn player_tile() -> @Tile {
         match self.player.location {
-            OnFloor(copy x, copy y) => {
-                return self.grid[x][y];
+            OnFloor(point) => {
+                return self.grid[point.x][point.y];
             }
             _ => fail,
         }
@@ -29,16 +30,16 @@ impl Map {
 
     fn move_entity(entity: @Entity, dx: int, dy: int) {
         match entity.location {
-            OnFloor(copy x, copy y) => {
-                let new_x = (x as int + dx) as uint;
-                let new_y = (y as int + dy) as uint;
+            OnFloor(copy point) => {
+                let new_x = (point.x as int + dx) as uint;
+                let new_y = (point.y as int + dy) as uint;
                 // TODO point type?
                 // TODO check in bounds...
                 let target_tile = self.grid[new_x][new_y];
                 // TODO these checks should already be done by the time we get here
                 if (copy target_tile.architecture).is_passable() && target_tile.creature.is_none() {
-                    entity.location = OnFloor(new_x, new_y);
-                    self.grid[new_x][new_y].creature <-> self.grid[x][y].creature;
+                    entity.location = OnFloor(Point{ x: new_x, y: new_y });
+                    self.grid[new_x][new_y].creature <-> self.grid[point.x][point.y].creature;
                 }
             }
             _ => fail ~"Can't move an entity that's not on the dungeon floor",
