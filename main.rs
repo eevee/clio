@@ -17,10 +17,10 @@ fn main() {
         // Input loop
         match display.main_window.read_key() {
             ll::Character('q') => return,
-            ll::SpecialKey(ll::KEY_UP) => { map.move_player(0, -1); }
-            ll::SpecialKey(ll::KEY_DOWN) => { map.move_player(0, 1); }
-            ll::SpecialKey(ll::KEY_LEFT) => { map.move_player(-1, 0); }
-            ll::SpecialKey(ll::KEY_RIGHT) => { map.move_player(1, 0); }
+            ll::SpecialKey(ll::KEY_UP) => { map.move_entity(map.player, 0, -1); }
+            ll::SpecialKey(ll::KEY_DOWN) => { map.move_entity(map.player, 0, 1); }
+            ll::SpecialKey(ll::KEY_LEFT) => { map.move_entity(map.player, -1, 0); }
+            ll::SpecialKey(ll::KEY_RIGHT) => { map.move_entity(map.player, 1, 0); }
             ll::Character(',') => {
                 let player_tile = map.player_tile();
                 if player_tile.items.len() > 0 {
@@ -34,7 +34,12 @@ fn main() {
             _ => {},
         }
 
-        // TODO only advance clock if the player actually does something
-        map.clock += 1;
+        // Now let every object on the board advance in time.
+        // TODO obviously the clock will be a little more fine-grained than
+        // this.
+        // TODO not only creatures need time...
+        // TODO invert this so the game itself handles player actions as well
+        // TODO and only advance the clock if the player performs a real action
+        game.advance_clock(display);
     }
 }

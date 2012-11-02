@@ -1,3 +1,4 @@
+use amulet::ll::Style;
 use amulet::ll::Window;
 
 use entity::Entity;
@@ -70,16 +71,28 @@ impl TerminalDisplay {
 
         statwin.clear();
         statwin.print(fmt!("⌛ %u", map.clock));
+
         statwin.mv(1, 0);
+        statwin.print(fmt!("♥ "));
+        let mut healthbar = ~"";
+        str::reserve(&mut healthbar, map.player.health);
+        for (copy map.player.health).times {
+            str::push_char(&mut healthbar, '█');
+        }
+        statwin.attrprint(healthbar, Style().fg(2));
+        //statwin.attrprint("░" * (5 - map.player.health) as uint, Style().fg(1));
+
+        statwin.mv(2, 0);
         statwin.print("inventory: ");
         for uint::range(0, map.player.contents.len()) |i| {
             self.draw_entity(statwin, map.player.contents[i]);
         }
+
         let tile = map.player_tile();
         if tile.items.len() > 0 {
-            statwin.mv(2, 0);
+            statwin.mv(4, 0);
             statwin.print("you see here:");
-            statwin.mv(3, 4);
+            statwin.mv(5, 4);
             for uint::range(0, tile.items.len()) |i| {
                 statwin.print("an item");
             }
