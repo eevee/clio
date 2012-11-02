@@ -4,8 +4,10 @@
 
 extern mod amulet;
 
-mod display;
 mod entity;
 mod fractor;
+mod interface {
+    mod terminal;
+}
 mod main;
 mod world;

@@ -1,48 +1,86 @@
+use amulet::ll;
 use amulet::ll::Style;
 use amulet::ll::Window;
 
 use entity::Entity;
+use entity::Action;
+use entity::MoveAction;
+use entity::WaitAction;
+use interface::Interface;
 use world::Map;
-use world::Game;
+use world::World;
 
-struct TerminalDisplay {
-    game: @Game,
+struct TerminalInterface {
     main_window: @Window,
     status_window: @Window,
     message_window: @Window,
 }
-pub fn TerminalDisplay(game: @Game) -> @TerminalDisplay {
+pub fn make_terminal_interface() -> Interface {
     let window = amulet::ll::init_screen();
     window.hide_cursor();
 
     // Create persistent status areas
-    let status_window = amulet::ll::new_window(0, 0, 0, game.map.width());
+    let status_window = amulet::ll::new_window(0, 0, 0, 80);
     let message_window = amulet::ll::new_window(0, 80, 24, 0);
 
-    return @TerminalDisplay{
-        game: game,
+    return TerminalInterface{
         main_window: window,
         status_window: status_window,
         message_window: message_window,
-    };
+    } as Interface;
 }
-impl TerminalDisplay {
+impl TerminalInterface: Interface {
+    fn next_action(world: &World) -> Action {
+        let map = world.map;
+
+        // Keep grabbing input until there's an actionable keypress
+        loop {
+            match self.main_window.read_key() {
+                // TODO unclear how to pass this upwards; may need more complex
+                // return type, boo
+                ll::Character('q') => fail,
+
+                ll::Character('.') => return WaitAction{ actor: map.player } as Action,
+
+                ll::SpecialKey(ll::KEY_UP) => return MoveAction{ actor: map.player, offset: (0, -1) } as Action,
+                ll::SpecialKey(ll::KEY_DOWN) => return MoveAction{ actor: map.player, offset: (0, 1) } as Action,
+                ll::SpecialKey(ll::KEY_LEFT) => return MoveAction{ actor: map.player, offset: (-1, 0) } as Action,
+                ll::SpecialKey(ll::KEY_RIGHT) => return MoveAction{ actor: map.player, offset: (1, 0) } as Action,
+
+                // TODO this is not an action
+                ll::Character(',') => {
+                    let player_tile = map.player_tile();
+                    if player_tile.items.len() > 0 {
+                        map.player.contents += player_tile.items;
+                        player_tile.items = ~[];
+                    }
+                    else {
+                        self.message("nothing here...\n");
+                    }
+                }
+                _ => {},
+            }
+        }
+    }
+
+
     fn message(s: &str) {
         self.message_window.print(fmt!("%s\n", s));
     }
 
-    fn update() {
-        self.update_map();
-        self.update_status();
-        self.update_messages();
+
+    fn redraw(world: &World) {
+        self.draw_map(world);
+        self.draw_status(world);
+        self.draw_messages(world);
     }
 
-    fn draw_entity(window: &Window, entity: @Entity) {
+    fn _draw_entity(window: &Window, entity: @Entity) {
         window.attrprint(fmt!("%c", entity.proto.display), entity.proto.style);
     }
 
-    fn update_map() {
-        let map = self.game.map;
+    fn draw_map(world: &World) {
+        let map = world.map;
         for uint::range(0, map.width()) |x| {
             for uint::range(0, map.height()) |y| {
                 let tile = map.grid[x][y];
@@ -58,15 +96,15 @@ impl TerminalDisplay {
                         }
                     }
                 };
-                self.draw_entity(self.main_window, entity);
+                self._draw_entity(self.main_window, entity);
             }
         }
 
         self.main_window.repaint();
     }
 
-    fn update_status() {
-        let map = self.game.map;
+    fn draw_status(world: &World) {
+        let map = world.map;
         let statwin = self.status_window;
 
         statwin.clear();
@@ -85,7 +123,7 @@ impl TerminalDisplay {
         statwin.mv(2, 0);
         statwin.print("inventory: ");
         for uint::range(0, map.player.contents.len()) |i| {
-            self.draw_entity(statwin, map.player.contents[i]);
+            self._draw_entity(statwin, map.player.contents[i]);
         }
 
         let tile = map.player_tile();
@@ -100,7 +138,7 @@ impl TerminalDisplay {
         statwin.repaint();
     }
 
-    fn update_messages() {
+    fn draw_messages(_world: &World) {
         self.message_window.repaint();
     }
 }

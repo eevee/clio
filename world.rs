@@ -1,4 +1,4 @@
-use display::TerminalDisplay;
+use interface::Interface;
 use entity::Entity;
 use entity::OnFloor;
 use fractor::generate_map;
@@ -56,38 +56,44 @@ struct Tile {
 }
 
 
-struct Game {
+struct World {
     map: @Map,
 }
-pub fn new_game() -> @Game {
-    return @Game{ map: generate_map() };
+pub fn new_game() -> @World {
+    return @World{ map: generate_map() };
 }
-impl Game {
-    /** Runs the game until player input is required. */
-    fn advance_clock(@self, display: &TerminalDisplay) {
-        // TODO extend this to letting every object in the world advance by one
-        // clock tic; make it that generic componenty entry point of update()
-        // (PS: that includes recursing into containers
-        let mut actors: ~[@Entity] = ~[];
-        for uint::range(0, self.map.width()) |x| {
-            for uint::range(0, self.map.height()) |y| {
-                match self.map.grid[x][y].creature {
-                    Some(copy creature) => {
-                        actors.push(creature);
+impl World {
+    /** Runs the game forever.  Ish. */
+    fn run(@self, interface: @Interface) {
+        // Advance time indefinitely, one loop at a...  time
+        loop {
+            // Draw the game world first
+            interface.redraw(self);
+
+            // TODO extend this to letting every object in the world advance by one
+            // clock tic; make it that generic componenty entry point of update()
+            // (PS: that includes recursing into containers
+            let mut actors: ~[@Entity] = ~[];
+            for uint::range(0, self.map.width()) |x| {
+                for uint::range(0, self.map.height()) |y| {
+                    match self.map.grid[x][y].creature {
+                        Some(copy creature) => {
+                            actors.push(creature);
+                        }
+                        None => {}
                     }
-                    None => {}
                 }
             }
-        }
 
-        for actors.each |actor| {
-            match actor.act(self) {
-                Some(action) => action.execute(self, display),
-                None => {}
-            }
+            for actors.each |actor| {
+                match actor.act(self, interface) {
+                    Some(action) => action.execute(self, interface),
+                    None => {}
+                }
 
-            if self.map.player.health == 0 {
-                fail ~"you died...";
+                if self.map.player.health == 0 {
+                    fail ~"you died...";
+                }
             }
         }
     }

@@ -1,8 +1,8 @@
 use amulet::ll;
 use amulet::ll::Style;
 
-use display::TerminalDisplay;
-use world::Game;
+use interface::Interface;
+use world::World;
 
 use option::{Option, None, Some};
 
@@ -27,6 +27,7 @@ pub const FLOOR: Prototype = Prototype{
 };
 
 // Creatures
+// TODO 'player' is not a species
 pub const PLAYER: Prototype = Prototype{
     display: '☻', style: Style{ is_bold: false, is_underline: false, fg_color: 4, bg_color: -1 },
     passable: false,
@@ -87,12 +88,13 @@ impl @Entity {
     }
 
     // BEHAVIOR
-    fn act(game: @Game) -> Option<Action> {
-        if ptr::ref_eq(self.proto, &PLAYER) {
-            return None;
+    fn act(world: @World, interface: @Interface) -> Option<Action> {
+        let player = world.map.player;
+
+        if box::ptr_eq(self, player) {
+            return Some(interface.next_action(world));
         }
 
-        let player = game.map.player;
         let (my_x, my_y) = match self.location {
             OnFloor(x, y) => (x, y),
             _ => fail,
@@ -108,21 +110,20 @@ impl @Entity {
         // If the player is adjacent, attack!
         if dx * dy == 0 && int::abs(dx + dy) == 1 {
             return Some(AttackAction{ actor: self, target: player } as Action);
-            //game.perform_attack(&self, player);
         }
 
         // Otherwise, approach
         if dx < 0 {
-            game.map.move_entity(self, -1, 0);
+            world.map.move_entity(self, -1, 0);
         }
         else if dx > 0 {
-            game.map.move_entity(self, 1, 0);
+            world.map.move_entity(self, 1, 0);
         }
         else if dy < 0 {
-            game.map.move_entity(self, 0, -1);
+            world.map.move_entity(self, 0, -1);
         }
         else if dy > 0 {
-            game.map.move_entity(self, 0, 1);
+            world.map.move_entity(self, 0, 1);
         }
 
         return None;
@@ -132,18 +133,41 @@ impl @Entity {
 
 // Actions...  oh boy.
 trait Action {
-    fn execute(game: &Game, display: &TerminalDisplay);
+    fn execute(world: &World, interface: @Interface);
 }
 
+/** `actor` strikes `target`. */
 struct AttackAction {
     actor: @Entity,
     target: @Entity,
 }
 impl AttackAction: Action {
-    fn execute(game: &Game, display: &TerminalDisplay) {
+    fn execute(_world: &World, interface: @Interface) {
         self.target.health -= 1;
         if ptr::ref_eq(self.target.proto, &PLAYER) {
-            display.message("ouch!");
+            interface.message("ouch!");
         }
+    }
+}
+
+/** `actor` moves by some amount. */
+struct MoveAction {
+    actor: @Entity,
+    offset: (int, int),
+}
+impl MoveAction: Action {
+    fn execute(world: &World, _interface: @Interface) {
+        match self.offset {
+            (x, y) => world.map.move_entity(self.actor, x, y),
+        }
+    }
+}
+
+/** `actor` does nothing. */
+struct WaitAction {
+    actor: @Entity,
+}
+impl WaitAction: Action {
+    fn execute(_world: &World, _interface: @Interface) {
     }
 }
