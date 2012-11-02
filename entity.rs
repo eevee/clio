@@ -32,6 +32,11 @@ pub const FLOOR: Prototype = Prototype{
     passable: true,
     unspeed: 0,
 };
+pub const PASSAGE: Prototype = Prototype{
+    display: '░', style: Style{ is_bold: false, is_underline: false, fg_color: 8, bg_color: -1 },
+    passable: true,
+    unspeed: 0,
+};
 
 // Creatures
 // TODO 'player' is not a species
