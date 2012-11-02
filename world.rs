@@ -7,9 +7,6 @@ struct Map {
     size: (uint, uint),
     mut grid: ~[~[@Tile]],
     mut player: @Entity,
-
-    // TODO this goes on the world, really.
-    mut clock: uint,
 }
 impl Map {
     fn width() -> uint {
@@ -56,45 +53,71 @@ struct Tile {
 }
 
 
+/// Number of subtics (speed units) per clock tick
+const TIC_SIZE: uint = 48;
+
 struct World {
     map: @Map,
+    mut clock: uint,
 }
 pub fn new_game() -> @World {
-    return @World{ map: generate_map() };
+    return @World{ map: generate_map(), clock: 0 };
 }
 impl World {
     /** Runs the game forever.  Ish. */
     fn run(@self, interface: @Interface) {
-        // Advance time indefinitely, one loop at a...  time
-        loop {
-            // Draw the game world first
-            interface.redraw(self);
+        // Draw the game world first
+        interface.redraw(self);
 
-            // TODO extend this to letting every object in the world advance by one
-            // clock tic; make it that generic componenty entry point of update()
-            // (PS: that includes recursing into containers
-            let mut actors: ~[@Entity] = ~[];
-            for uint::range(0, self.map.width()) |x| {
-                for uint::range(0, self.map.height()) |y| {
-                    match self.map.grid[x][y].creature {
-                        Some(copy creature) => {
-                            actors.push(creature);
-                        }
-                        None => {}
+        // Find everything in the world.
+        // TODO extend this to letting every object in the world advance by one
+        // clock tic; make it that generic componenty entry point of update()
+        // (PS: that includes recursing into containers
+        // TODO this will fuck up if objects are created or destroyed, the map
+        // changes, etc.!  should possibly be an attribute of the map, so it
+        // can be responsible for maintaining the order
+
+        let mut actors: ~[@Entity] = ~[];
+        for uint::range(0, self.map.width()) |x| {
+            for uint::range(0, self.map.height()) |y| {
+                match self.map.grid[x][y].creature {
+                    Some(copy creature) => {
+                        actors.push(creature);
                     }
-                }
-            }
-
-            for actors.each |actor| {
-                match actor.act(self, interface) {
-                    Some(action) => action.execute(self, interface),
                     None => {}
                 }
-
-                if self.map.player.health == 0 {
-                    fail ~"you died...";
-                }
             }
+        }
+
+        // Advance time indefinitely, one loop at a...  time
+        loop {
+            for actors.each |actor| {
+                while actor.spent_subtics < TIC_SIZE {
+                    match actor.act(self, interface) {
+                        Some(action) => action.execute(self, interface),
+                        None => {}
+                    }
+
+                    // Always redraw the world after something happens
+                    interface.redraw(self);
+
+                    if self.map.player.health == 0 {
+                        fail ~"you died...";
+                    }
+
+                    actor.spent_subtics += actor.proto.unspeed;
+                }
+
+                // Remove one tic's worth of subtics.  Don't modulo!
+                actor.spent_subtics -= TIC_SIZE;
+            }
+
+            // Advance the clock
+            self.clock += 1;
+            // TODO need to re-sort the actor list by time used
+
+            // Always redraw the world at the end of a tic
+            interface.redraw(self);
         }
     }
 }

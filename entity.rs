@@ -16,14 +16,17 @@ use option::{Option, None, Some};
 pub const ROCKFACE: Prototype = Prototype{
     display: ' ', style: Style{ is_bold: false, is_underline: false, fg_color: -1, bg_color: -1 },
     passable: false,
+    unspeed: 0,
 };
 pub const WALL: Prototype = Prototype{
     display: '▒', style: Style{ is_bold: false, is_underline: false, fg_color: 8, bg_color: -1 },
     passable: false,
+    unspeed: 0,
 };
 pub const FLOOR: Prototype = Prototype{
     display: '·', style: Style{ is_bold: false, is_underline: false, fg_color: 8, bg_color: -1 },
     passable: true,
+    unspeed: 0,
 };
 
 // Creatures
@@ -31,16 +34,19 @@ pub const FLOOR: Prototype = Prototype{
 pub const PLAYER: Prototype = Prototype{
     display: '☻', style: Style{ is_bold: false, is_underline: false, fg_color: 4, bg_color: -1 },
     passable: false,
+    unspeed: 48,
 };
 pub const ENEMY: Prototype = Prototype{
     display: 'a', style: Style{ is_bold: true, is_underline: false, fg_color: 1, bg_color: -1 },
     passable: true,
+    unspeed: 72,
 };
 
 // Objects
 pub const SCROLL: Prototype = Prototype{
     display: '?', style: Style{ is_bold: true, is_underline: false, fg_color: -1, bg_color: -1 },
     passable: true,
+    unspeed: 0,
 };
 
 
@@ -48,6 +54,9 @@ struct Prototype {
     display: char,
     style: ll::Style,
     passable: bool,
+
+    /// Base amount of time that an action takes, in tics
+    unspeed: uint,
 }
 impl &static/Prototype {
     /// Create a new entity from a prototype.
@@ -60,6 +69,9 @@ impl &static/Prototype {
             // TODO this doesn't seem right.  not all objects have health.
             // component ahoy.  but same with `contents`, honestly.
             health: 5,
+
+            // TODO does this belong to "behavior"?
+            spent_subtics: 0,
         };
     }
 }
@@ -80,6 +92,8 @@ struct Entity {
     mut contents: ~[@Entity],
 
     mut health: uint,
+
+    mut spent_subtics: uint,
 }
 impl @Entity {
     // PHYSICS

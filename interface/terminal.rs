@@ -108,7 +108,7 @@ impl TerminalInterface: Interface {
         let statwin = self.status_window;
 
         statwin.clear();
-        statwin.print(fmt!("⌛ %u", map.clock));
+        statwin.print(fmt!("⌛ %u", world.clock));
 
         statwin.mv(1, 0);
         statwin.print(fmt!("♥ "));
@@ -131,7 +131,7 @@ impl TerminalInterface: Interface {
             statwin.mv(4, 0);
             statwin.print("you see here:");
             statwin.mv(5, 4);
-            for uint::range(0, tile.items.len()) |i| {
+            for uint::range(0, tile.items.len()) |_i| {
                 statwin.print("an item");
             }
         }

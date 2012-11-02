@@ -65,5 +65,5 @@ fn generate_map() -> @Map {
     scroll.location = OnFloor(scroll_x, scroll_y);
     grid[scroll_x][scroll_y].items.push(scroll);
 
-    return @Map{ size: (width, height), grid: grid, player: player, clock: 0 };
+    return @Map{ size: (width, height), grid: grid, player: player };
 }
