@@ -7,8 +7,7 @@ extern mod amulet;
 mod entity;
 mod fractor;
 mod geometry;
-mod interface {
-    mod terminal;
-}
+#[path = "interface/mod.rs"]
+mod interface;
 mod main;
 mod world;

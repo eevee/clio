@@ -1,7 +1,6 @@
 use amulet::ll;
 
 use interface::terminal::make_terminal_interface;
-use interface::terminal::TerminalInterface;
 use world;
 
 fn main() {

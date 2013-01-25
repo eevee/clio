@@ -1,8 +1,10 @@
+mod terminal;
+
 use entity::Action;
 use world::World;
 
 /** Something that adapts the game core to a human being; performs I/O. */
-trait Interface {
+pub trait Interface {
     // Input
 
     /** Prompt the user for the next action to take.  Should probably block. */

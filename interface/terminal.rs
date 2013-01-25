@@ -53,7 +53,7 @@ impl TerminalInterface: Interface {
                 ll::Character(',') => {
                     let player_tile = map.player_tile();
                     if player_tile.items.len() > 0 {
-                        map.player.contents += player_tile.items;
+                        map.player.contents = map.player.contents + player_tile.items;
                         player_tile.items = ~[];
                     }
                     else {
@@ -65,6 +65,22 @@ impl TerminalInterface: Interface {
         }
     }
 
+    fn message(s: &str) {
+        self.message_window.print(fmt!("%s\n", s));
+    }
+
+    fn redraw(world: &World) {
+        self.draw_map(world);
+        self.draw_status(world);
+        self.draw_messages(world);
+    }
+
+    fn end() {
+        self.main_window.read_key();
+        libc::exit(0);
+    }
+}
+impl TerminalInterface {
     fn pick_direction_action(world: &World, direction: Offset) -> Action {
         let player = world.map.player;
         let maybe_tile = world.map.tile_relative(player, direction);
@@ -83,19 +99,8 @@ impl TerminalInterface: Interface {
     }
 
 
-    fn message(s: &str) {
-        self.message_window.print(fmt!("%s\n", s));
-    }
-
-
-    fn redraw(world: &World) {
-        self.draw_map(world);
-        self.draw_status(world);
-        self.draw_messages(world);
-    }
-
     fn _draw_entity(window: &Window, entity: @Entity) {
-        window.attrprint(fmt!("%c", entity.proto.display), entity.proto.style);
+        window.attrwrite(fmt!("%c", entity.proto.display), &entity.proto.style);
     }
 
     fn draw_map(world: &World) {
@@ -136,8 +141,8 @@ impl TerminalInterface: Interface {
         for (copy map.player.health).times {
             str::push_char(&mut healthbar, '█');
         }
-        statwin.attrprint(healthbar, Style().fg(2));
-        //statwin.attrprint("░" * (5 - map.player.health) as uint, Style().fg(1));
+        statwin.attrwrite(healthbar, &Style().fg(2));
+        //statwin.attrwrite("░" * (5 - map.player.health) as uint, &Style().fg(1));
 
         statwin.mv(2, 0);
         statwin.print("inventory: ");
@@ -159,10 +164,5 @@ impl TerminalInterface: Interface {
 
     fn draw_messages(_world: &World) {
         self.message_window.repaint();
-    }
-
-    fn end() {
-        self.main_window.read_key();
-        libc::exit(0);
     }
 }

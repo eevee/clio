@@ -1,4 +1,4 @@
-struct Point {
+pub struct Point {
     x: int,
     y: int,
 }
@@ -6,7 +6,7 @@ impl Point {
 }
 
 impl Point: Sub<Point, Offset> {
-    pure fn sub(other: &Point) -> Offset {
+    pure fn sub(&self, other: &Point) -> Offset {
         return Offset{
             dx: self.x - other.x,
             dy: self.y - other.y,
@@ -14,7 +14,7 @@ impl Point: Sub<Point, Offset> {
     }
 }
 impl Point: Add<Offset, Point> {
-    pure fn add(other: &Offset) -> Point {
+    pure fn add(&self, other: &Offset) -> Point {
         return Point{
             x: self.x + other.dx,
             y: self.y + other.dy,
@@ -24,7 +24,7 @@ impl Point: Add<Offset, Point> {
 
 // -----------------------------------------------------------------------------
 
-struct Offset {
+pub struct Offset {
     dx: int,
     dy: int,
 }
@@ -69,7 +69,7 @@ impl Offset {
 
 // -----------------------------------------------------------------------------
 
-struct Size {
+pub struct Size {
     width: uint,
     height: uint,
 }
@@ -78,7 +78,7 @@ impl Size {
 
 // -----------------------------------------------------------------------------
 
-struct Rectangle {
+pub struct Rectangle {
     topleft: Point,
     size: Size,
 }

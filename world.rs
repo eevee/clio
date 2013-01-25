@@ -10,7 +10,7 @@ use geometry::Point;
 use geometry::Rectangle;
 use geometry::Size;
 
-struct Map {
+pub struct Map {
     size: Size,
     mut grid: ~[~[@Tile]],
     mut player: @Entity,
@@ -57,7 +57,7 @@ impl Map {
             OnFloor(copy point) => {
                 let tile = self.grid[point.x][point.y];
                 match tile.creature {
-                    Some(copy creature) if box::ptr_eq(entity, creature) => {
+                    Some(copy creature) if managed::ptr_eq(entity, creature) => {
                         entity.location = Nowhere;
                         tile.creature = None;
                     }
@@ -91,7 +91,7 @@ impl Map {
     }
 }
 
-struct Tile {
+pub struct Tile {
     mut architecture: @Entity,
     mut creature: Option<@Entity>,
     mut items: ~[@Entity],
@@ -101,7 +101,7 @@ struct Tile {
 /// Number of subtics (speed units) per clock tick
 const TIC_SIZE: uint = 48;
 
-struct World {
+pub struct World {
     map: @Map,
     mut clock: uint,
 }

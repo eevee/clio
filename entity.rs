@@ -59,7 +59,7 @@ pub const SCROLL: Prototype = Prototype{
 };
 
 
-struct Prototype {
+pub struct Prototype {
     display: char,
     style: ll::Style,
     passable: bool,
@@ -95,7 +95,7 @@ pub enum Location {
     InContainer,
 }
 
-struct Entity {
+pub struct Entity {
     proto: &static/Prototype,
     mut location: Location,
     mut contents: ~[@Entity],
@@ -114,7 +114,7 @@ impl @Entity {
     fn act(world: @World, interface: @Interface) -> Option<Action> {
         let player = world.map.player;
 
-        if box::ptr_eq(self, player) {
+        if managed::ptr_eq(self, player) {
             return Some(interface.next_action(world));
         }
 
@@ -149,12 +149,12 @@ impl @Entity {
 
 
 // Actions...  oh boy.
-trait Action {
+pub trait Action {
     fn execute(world: &World, interface: @Interface);
 }
 
 /** `actor` strikes `target`. */
-struct AttackAction {
+pub struct AttackAction {
     actor: @Entity,
     target: @Entity,
 }
@@ -183,7 +183,7 @@ impl AttackAction: Action {
 }
 
 /** `actor` moves by some amount. */
-struct MoveAction {
+pub struct MoveAction {
     actor: @Entity,
     offset: Offset,
 }
@@ -194,7 +194,7 @@ impl MoveAction: Action {
 }
 
 /** `actor` does nothing. */
-struct WaitAction {
+pub struct WaitAction {
     actor: @Entity,
 }
 impl WaitAction: Action {
