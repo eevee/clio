@@ -66,7 +66,7 @@ impl TerminalInterface: Interface {
     }
 
     fn message(s: &str) {
-        self.message_window.print(fmt!("%s\n", s));
+        self.message_window.write(fmt!("%s\n", s));
     }
 
     fn redraw(world: &World) {
@@ -132,10 +132,10 @@ impl TerminalInterface {
         let statwin = self.status_window;
 
         statwin.clear();
-        statwin.print(fmt!("⌛ %u", world.clock));
+        statwin.write(fmt!("⌛ %u", world.clock));
 
         statwin.mv(1, 0);
-        statwin.print(fmt!("♥ "));
+        statwin.write(fmt!("♥ "));
         let mut healthbar = ~"";
         str::reserve(&mut healthbar, map.player.health);
         for (copy map.player.health).times {
@@ -145,7 +145,7 @@ impl TerminalInterface {
         //statwin.attrwrite("░" * (5 - map.player.health) as uint, &Style().fg(1));
 
         statwin.mv(2, 0);
-        statwin.print("inventory: ");
+        statwin.write("inventory: ");
         for uint::range(0, map.player.contents.len()) |i| {
             self._draw_entity(statwin, map.player.contents[i]);
         }
@@ -153,10 +153,10 @@ impl TerminalInterface {
         let tile = map.player_tile();
         if tile.items.len() > 0 {
             statwin.mv(4, 0);
-            statwin.print("you see here:");
+            statwin.write("you see here:");
             statwin.mv(5, 4);
             for uint::range(0, tile.items.len()) |_i| {
-                statwin.print("an item");
+                statwin.write("an item");
             }
         }
         statwin.repaint();
