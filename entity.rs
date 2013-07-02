@@ -1,4 +1,7 @@
-use rand::task_rng;
+use core::managed;
+use core::option::{Option, None, Some};
+use core::rand::RngUtil;  // for gen_uint_range
+use core::rand::task_rng;
 
 use amulet::ll;
 use amulet::ll::Style;
@@ -8,8 +11,6 @@ use geometry::Point;
 use interface::Interface;
 use world::World;
 
-use option::{Option, None, Some};
-
 // -----------------------------------------------------------------------------
 // Prototypes: templates for entities
 
@@ -17,22 +18,22 @@ use option::{Option, None, Some};
 // and flooring in a static way
 
 // Architecture
-pub const ROCKFACE: Prototype = Prototype{
+pub static ROCKFACE: Prototype = Prototype{
     display: ' ', style: Style{ is_bold: false, is_underline: false, fg_color: -1, bg_color: -1 },
     passable: false,
     unspeed: 0,
 };
-pub const WALL: Prototype = Prototype{
+pub static WALL: Prototype = Prototype{
     display: '▒', style: Style{ is_bold: false, is_underline: false, fg_color: 8, bg_color: -1 },
     passable: false,
     unspeed: 0,
 };
-pub const FLOOR: Prototype = Prototype{
+pub static FLOOR: Prototype = Prototype{
     display: '·', style: Style{ is_bold: false, is_underline: false, fg_color: 8, bg_color: -1 },
     passable: true,
     unspeed: 0,
 };
-pub const PASSAGE: Prototype = Prototype{
+pub static PASSAGE: Prototype = Prototype{
     display: '░', style: Style{ is_bold: false, is_underline: false, fg_color: 8, bg_color: -1 },
     passable: true,
     unspeed: 0,
@@ -40,19 +41,19 @@ pub const PASSAGE: Prototype = Prototype{
 
 // Creatures
 // TODO 'player' is not a species
-pub const PLAYER: Prototype = Prototype{
+pub static PLAYER: Prototype = Prototype{
     display: '☻', style: Style{ is_bold: false, is_underline: false, fg_color: 4, bg_color: -1 },
     passable: false,
     unspeed: 48,
 };
-pub const ENEMY: Prototype = Prototype{
+pub static ENEMY: Prototype = Prototype{
     display: 'a', style: Style{ is_bold: true, is_underline: false, fg_color: 1, bg_color: -1 },
     passable: true,
     unspeed: 72,
 };
 
 // Objects
-pub const SCROLL: Prototype = Prototype{
+pub static SCROLL: Prototype = Prototype{
     display: '?', style: Style{ is_bold: true, is_underline: false, fg_color: -1, bg_color: -1 },
     passable: true,
     unspeed: 0,
@@ -67,9 +68,9 @@ pub struct Prototype {
     /// Base amount of time that an action takes, in tics
     unspeed: uint,
 }
-impl &static/Prototype {
+impl Prototype {
     /// Create a new entity from a prototype.
-    fn make_entity() -> @Entity {
+    fn make_entity(&'static self) -> @Entity {
         return @Entity{
             proto: self,
             location: Nowhere,
@@ -96,7 +97,7 @@ pub enum Location {
 }
 
 pub struct Entity {
-    proto: &static/Prototype,
+    proto: &'static Prototype,
     mut location: Location,
     mut contents: ~[@Entity],
 
@@ -104,14 +105,14 @@ pub struct Entity {
 
     mut spent_subtics: uint,
 }
-impl @Entity {
+impl Entity {
     // PHYSICS
-    fn is_passable() -> bool {
+    fn is_passable(&self) -> bool {
         return self.proto.passable;
     }
 
     // BEHAVIOR
-    fn act(world: @World, interface: @Interface) -> Option<Action> {
+    fn act(@self, world: @World, interface: &Interface) -> Option<~Action> {
         let player = world.map.player;
 
         if managed::ptr_eq(self, player) {
@@ -120,18 +121,18 @@ impl @Entity {
 
         let me_point = match self.location {
             OnFloor(pt) => pt,
-            _ => fail,
+            _ => fail!(~"todo"),
         };
         let player_point = match player.location {
             OnFloor(pt) => pt,
-            _ => fail,
+            _ => fail!(~"todo"),
         };
 
         let distance = player_point - me_point;
 
         // If the player is adjacent, attack!
         if distance.is_adjacent() {
-            return Some(AttackAction{ actor: self, target: player } as Action);
+            return Some(~AttackAction{ actor: self, target: player } as ~Action);
         }
 
         // Otherwise, approach!  Pick direction at random.
@@ -150,7 +151,7 @@ impl @Entity {
 
 // Actions...  oh boy.
 pub trait Action {
-    fn execute(world: &World, interface: @Interface);
+    fn execute(&self, world: &World, interface: &Interface);
 }
 
 /** `actor` strikes `target`. */
@@ -158,8 +159,8 @@ pub struct AttackAction {
     actor: @Entity,
     target: @Entity,
 }
-impl AttackAction: Action {
-    fn execute(world: &World, interface: @Interface) {
+impl Action for AttackAction {
+    fn execute(&self, world: &World, interface: &Interface) {
         if ptr::ref_eq(self.target.proto, &PLAYER) {
             interface.message("it hits you!");
         }
@@ -187,8 +188,8 @@ pub struct MoveAction {
     actor: @Entity,
     offset: Offset,
 }
-impl MoveAction: Action {
-    fn execute(world: &World, _interface: @Interface) {
+impl Action for MoveAction {
+    fn execute(&self, world: &World, _interface: &Interface) {
         world.map.move_entity(self.actor, self.offset.dx, self.offset.dy);
     }
 }
@@ -197,7 +198,7 @@ impl MoveAction: Action {
 pub struct WaitAction {
     actor: @Entity,
 }
-impl WaitAction: Action {
-    fn execute(_world: &World, _interface: @Interface) {
+impl Action for WaitAction {
+    fn execute(&self, _world: &World, _interface: &Interface) {
     }
 }

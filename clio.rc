@@ -4,10 +4,10 @@
 
 extern mod amulet;
 
-mod entity;
+pub mod entity;
 mod fractor;
 mod geometry;
 #[path = "interface/mod.rs"]
 mod interface;
 mod main;
-mod world;
+pub mod world;

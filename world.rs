@@ -1,4 +1,5 @@
-use option::{Option, None, Some};
+use core::managed;
+use core::option::{Option, None, Some};
 
 use interface::Interface;
 use entity::Entity;
@@ -16,31 +17,31 @@ pub struct Map {
     mut player: @Entity,
 }
 impl Map {
-    fn width() -> uint {
+    fn width(&self) -> uint {
         return self.size.width;
     }
-    fn height() -> uint {
+    fn height(&self) -> uint {
         return self.size.height;
     }
-    fn bounds() -> Rectangle {
+    fn bounds(&self) -> Rectangle {
         return Rectangle{
             topleft: Point{ x: 0, y: 0 },
             size: self.size,
         };
     }
 
-    fn player_tile() -> @Tile {
+    fn player_tile(&self) -> @Tile {
         match self.player.location {
             OnFloor(point) => {
                 return self.grid[point.x][point.y];
             }
-            _ => fail,
+            _ => fail!(~"todo"),
         }
     }
-    fn tile_relative(source: @Entity, offset: Offset) -> Option<@Tile> {
+    fn tile_relative(&self, source: @Entity, offset: Offset) -> Option<@Tile> {
         let point = match source.location {
             OnFloor(pt) => pt,
-            _ => fail,
+            _ => fail!(~"todo"),
         };
         let new_point = point + offset;
 
@@ -52,7 +53,7 @@ impl Map {
         }
     }
 
-    fn remove_entity(entity: @Entity) {
+    fn remove_entity(&self, entity: @Entity) {
         match entity.location {
             OnFloor(copy point) => {
                 let tile = self.grid[point.x][point.y];
@@ -62,17 +63,17 @@ impl Map {
                         tile.creature = None;
                     }
                     _ => {
-                        fail ~"Entity not where it claimed to be!";
+                        fail!(~"Entity not where it claimed to be!");
                     }
                 }
             }
             _ => {
-                fail ~"Don't know how to remove this entity";
+                fail!(~"Don't know how to remove this entity");
             }
         }
     }
 
-    fn move_entity(entity: @Entity, dx: int, dy: int) {
+    fn move_entity(&self, entity: @Entity, dx: int, dy: int) {
         match entity.location {
             OnFloor(copy point) => {
                 let new_x = point.x + dx;
@@ -86,7 +87,7 @@ impl Map {
                     self.grid[new_x][new_y].creature <-> self.grid[point.x][point.y].creature;
                 }
             }
-            _ => fail ~"Can't move an entity that's not on the dungeon floor",
+            _ => fail!(~"Can't move an entity that's not on the dungeon floor"),
         }
     }
 }
@@ -99,7 +100,7 @@ pub struct Tile {
 
 
 /// Number of subtics (speed units) per clock tick
-const TIC_SIZE: uint = 48;
+static TIC_SIZE: uint = 48;
 
 pub struct World {
     map: @Map,
@@ -110,7 +111,7 @@ pub fn new_game() -> @World {
 }
 impl World {
     /** Runs the game forever.  Ish. */
-    fn run(@self, interface: @Interface) {
+    fn run(@self, interface: &Interface) {
         // Draw the game world first
         interface.redraw(self);
 
@@ -154,7 +155,7 @@ impl World {
                     interface.redraw(self);
 
                     if self.map.player.health == 0 {
-                        fail ~"you died...";
+                        fail!(~"you died...");
                     }
 
                     actor.spent_subtics += actor.proto.unspeed;

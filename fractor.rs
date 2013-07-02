@@ -1,5 +1,6 @@
-use option::{None, Option, Some};
-use rand::task_rng;
+use core::option::{None, Option, Some};
+use core::rand::RngUtil;  // for gen_uint_range
+use core::rand::task_rng;
 
 use amulet::ll;
 
@@ -59,7 +60,7 @@ struct Region {
     height: uint,
 }
 impl Region {
-    fn pick_point() -> Point {
+    fn pick_point(&self) -> Point {
         // Pick a point, omitting the walls
         // TODO actually that's kinda room-specific, huh.
         return Point{
@@ -70,18 +71,18 @@ impl Region {
 
     /** Split a Region into two halves, vertically, at a random point near-ish
      * the middle. */
-    fn split_vert() -> ~[Region] {
+    fn split_vert(&self) -> ~[Region] {
         // TODO this should really really not span the /entire/ width
         let split_point = roll_normalish(self.width);
         return ~[
-            Region{ width: split_point, ..self },
-            Region{ x: split_point + self.x, width: self.width - split_point, ..self }
+            Region{ width: split_point, ..*self },
+            Region{ x: split_point + self.x, width: self.width - split_point, ..*self }
         ];
     }
 
     // TODO should return Room but i don't know how to do that since there is
     // no subclassing
-    fn add_room() -> Region {
+    fn add_room(&self) -> Region {
         let width = roll_normalish(self.width);
         let height = roll_normalish(self.height);
         let x = self.x + roll_normalish(self.width - width);
@@ -90,7 +91,7 @@ impl Region {
         return Region{ x: x, y: y, width: width, height: height };
     }
 
-    fn draw_onto(canvas: &[~[@Tile]]) {
+    fn draw_onto(&self, canvas: &[~[@Tile]]) {
         // Top and bottom walls
         for uint::range(self.x, self.x + self.width) |x| {
             canvas[x][self.y].architecture = entity::WALL.make_entity();
@@ -111,7 +112,7 @@ impl Region {
         }
     }
 
-    fn place_creature(proto: &static/Prototype, canvas: &[~[@Tile]]) -> @Entity {
+    fn place_creature(&self, proto: &'static Prototype, canvas: &[~[@Tile]]) -> @Entity {
         let entity = proto.make_entity();
 
         // TODO unlikely, but possible infinite loop
