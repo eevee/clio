@@ -1,6 +1,8 @@
-use core::option::{None, Option, Some};
-use core::rand::RngUtil;  // for gen_uint_range
-use core::rand::task_rng;
+use std::rand::RngUtil;  // for gen_uint_range
+use std::rand::task_rng;
+use std::uint;
+use std::util::swap;
+use std::vec;
 
 use amulet::ll;
 
@@ -18,11 +20,10 @@ use world::Tile;
 
 /** Roll XdY, except assume the dice start at zero. */
 fn roll(trials: uint, sides: uint) -> uint {
-    let rng = task_rng();
+    let mut rng = task_rng();
     let mut rv: uint = 0;
-    do trials.times {
+    for trials.times {
         rv += rng.gen_uint_range(0, sides);
-        true
     }
     return rv;
 }
@@ -91,7 +92,7 @@ impl Region {
         return Region{ x: x, y: y, width: width, height: height };
     }
 
-    fn draw_onto(&self, canvas: &[~[@Tile]]) {
+    fn draw_onto(&self, canvas: &[~[@mut Tile]]) {
         // Top and bottom walls
         for uint::range(self.x, self.x + self.width) |x| {
             canvas[x][self.y].architecture = entity::WALL.make_entity();
@@ -112,7 +113,7 @@ impl Region {
         }
     }
 
-    fn place_creature(&self, proto: &'static Prototype, canvas: &[~[@Tile]]) -> @Entity {
+    fn place_creature(&self, proto: &'static Prototype, canvas: &[~[@mut Tile]]) -> @mut Entity {
         let entity = proto.make_entity();
 
         // TODO unlikely, but possible infinite loop
@@ -127,7 +128,7 @@ impl Region {
     }
 }
 
-pub fn generate_map() -> @Map {
+pub fn generate_map() -> @mut Map {
     let region = Region{ x: 0, y: 0, width: 80, height: 24 };
 
     // TODO the api for actually drawing kinda sucks and does a bit of
@@ -137,7 +138,7 @@ pub fn generate_map() -> @Map {
         vec::from_fn(region.height, |y| {
             let entity = entity::ROCKFACE.make_entity();
             entity.location = OnFloor(Point{ x: x as int, y: y as int });
-            @Tile{ architecture: entity, creature: None, items: ~[] }
+            @mut Tile{ architecture: entity, creature: None, items: ~[] }
         })
     });
 
@@ -169,7 +170,7 @@ pub fn generate_map() -> @Map {
         }
     }
     if start_y > end_y {
-        start_y <-> end_y;
+        swap(&mut start_y, &mut end_y);
     }
     if end_y - start_y > 1 {
         for uint::range(start_y + 1, end_y) |y| {
@@ -179,7 +180,7 @@ pub fn generate_map() -> @Map {
 
     // Place some things
     if flip() {
-        left_room <-> right_room;
+        swap(&mut left_room, &mut right_room);
     }
 
     let player = left_room.place_creature(&entity::PLAYER, canvas);
@@ -189,5 +190,5 @@ pub fn generate_map() -> @Map {
     scroll.location = OnFloor(point);
     canvas[point.x][point.y].items.push(scroll);
 
-    return @Map{ size: Size{ width: region.width, height: region.height }, grid: canvas, player: player };
+    return @mut Map{ size: Size{ width: region.width, height: region.height }, grid: canvas, player: player };
 }

@@ -8,7 +8,7 @@ pub trait Interface {
     // Input
 
     /** Prompt the user for the next action to take.  Should probably block. */
-    fn next_action(&self, world: &World) -> ~Action;
+    fn next_action(&self, world: &World) -> ~Action:'static;
 
 
     // Output

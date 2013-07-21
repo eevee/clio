@@ -4,11 +4,15 @@ use interface::Interface;
 use interface::terminal::make_terminal_interface;
 use world;
 
-fn main() {
+#[main]
+pub fn main() {
     let world = world::new_game();
 
-    let interface = make_terminal_interface();
+    let interface = @make_terminal_interface();
     interface.message("welcome!");
 
-    world.run(&*interface as &Interface);
+    // TODO no obvious way to pass ~Foo as &FooTrait; maybe make_*_interface
+    // shouldn't return a pointer at all, for starters.  or should return a
+    // pre-traited thing?
+    world.run(interface as @Interface);
 }

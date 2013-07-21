@@ -1,7 +1,8 @@
-use core::managed;
-use core::option::{Option, None, Some};
-use core::rand::RngUtil;  // for gen_uint_range
-use core::rand::task_rng;
+use std::borrow::ref_eq;
+use std::managed;
+use std::option::{Option, None, Some};
+use std::rand::RngUtil;  // for gen_uint_range
+use std::rand::task_rng;
 
 use amulet::ll;
 use amulet::ll::Style;
@@ -70,8 +71,8 @@ pub struct Prototype {
 }
 impl Prototype {
     /// Create a new entity from a prototype.
-    fn make_entity(&'static self) -> @Entity {
-        return @Entity{
+    pub fn make_entity(&'static self) -> @mut Entity {
+        return @mut Entity{
             proto: self,
             location: Nowhere,
             contents: ~[],
@@ -98,24 +99,24 @@ pub enum Location {
 
 pub struct Entity {
     proto: &'static Prototype,
-    mut location: Location,
-    mut contents: ~[@Entity],
+    location: Location,
+    contents: ~[@mut Entity],
 
-    mut health: uint,
+    health: uint,
 
-    mut spent_subtics: uint,
+    spent_subtics: uint,
 }
 impl Entity {
     // PHYSICS
-    fn is_passable(&self) -> bool {
+    pub fn is_passable(&self) -> bool {
         return self.proto.passable;
     }
 
     // BEHAVIOR
-    fn act(@self, world: @World, interface: &Interface) -> Option<~Action> {
+    pub fn act(@mut self, world: &mut World, interface: &@Interface) -> Option<~Action:'static> {
         let player = world.map.player;
 
-        if managed::ptr_eq(self, player) {
+        if managed::mut_ptr_eq(self, player) {
             return Some(interface.next_action(world));
         }
 
@@ -132,7 +133,7 @@ impl Entity {
 
         // If the player is adjacent, attack!
         if distance.is_adjacent() {
-            return Some(~AttackAction{ actor: self, target: player } as ~Action);
+            return Some(~AttackAction{ actor: self, target: player } as ~Action:'static);
         }
 
         // Otherwise, approach!  Pick direction at random.
@@ -151,27 +152,27 @@ impl Entity {
 
 // Actions...  oh boy.
 pub trait Action {
-    fn execute(&self, world: &World, interface: &Interface);
+    pub fn execute(&self, world: &mut World, interface: &@Interface);
 }
 
 /** `actor` strikes `target`. */
 pub struct AttackAction {
-    actor: @Entity,
-    target: @Entity,
+    actor: @mut Entity,
+    target: @mut Entity,
 }
 impl Action for AttackAction {
-    fn execute(&self, world: &World, interface: &Interface) {
-        if ptr::ref_eq(self.target.proto, &PLAYER) {
+    fn execute(&self, world: &mut World, interface: &@Interface) {
+        if ref_eq(self.target.proto, &PLAYER) {
             interface.message("it hits you!");
         }
-        else if ptr::ref_eq(self.actor.proto, &PLAYER) {
+        else if ref_eq(self.actor.proto, &PLAYER) {
             interface.message("you hit it!");
         }
 
         self.target.health -= 1;
 
         if self.target.health == 0 {
-            if ptr::ref_eq(self.target.proto, &PLAYER) {
+            if ref_eq(self.target.proto, &PLAYER) {
                 interface.message("you die...");
                 interface.end();
             }
@@ -185,20 +186,20 @@ impl Action for AttackAction {
 
 /** `actor` moves by some amount. */
 pub struct MoveAction {
-    actor: @Entity,
+    actor: @mut Entity,
     offset: Offset,
 }
 impl Action for MoveAction {
-    fn execute(&self, world: &World, _interface: &Interface) {
+    fn execute(&self, world: &mut World, _interface: &@Interface) {
         world.map.move_entity(self.actor, self.offset.dx, self.offset.dy);
     }
 }
 
 /** `actor` does nothing. */
 pub struct WaitAction {
-    actor: @Entity,
+    actor: @mut Entity,
 }
 impl Action for WaitAction {
-    fn execute(&self, _world: &World, _interface: &Interface) {
+    fn execute(&self, _world: &mut World, _interface: &@Interface) {
     }
 }

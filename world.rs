@@ -1,5 +1,6 @@
-use core::managed;
-use core::option::{Option, None, Some};
+use std::managed;
+use std::uint;
+use std::util::swap;
 
 use interface::Interface;
 use entity::Entity;
@@ -13,14 +14,14 @@ use geometry::Size;
 
 pub struct Map {
     size: Size,
-    mut grid: ~[~[@Tile]],
-    mut player: @Entity,
+    grid: ~[~[@mut Tile]],
+    player: @mut Entity,
 }
 impl Map {
-    fn width(&self) -> uint {
+    pub fn width(&self) -> uint {
         return self.size.width;
     }
-    fn height(&self) -> uint {
+    pub fn height(&self) -> uint {
         return self.size.height;
     }
     fn bounds(&self) -> Rectangle {
@@ -30,7 +31,7 @@ impl Map {
         };
     }
 
-    fn player_tile(&self) -> @Tile {
+    pub fn player_tile(&self) -> @mut Tile {
         match self.player.location {
             OnFloor(point) => {
                 return self.grid[point.x][point.y];
@@ -38,7 +39,7 @@ impl Map {
             _ => fail!(~"todo"),
         }
     }
-    fn tile_relative(&self, source: @Entity, offset: Offset) -> Option<@Tile> {
+    pub fn tile_relative(&self, source: @mut Entity, offset: Offset) -> Option<@mut Tile> {
         let point = match source.location {
             OnFloor(pt) => pt,
             _ => fail!(~"todo"),
@@ -53,12 +54,12 @@ impl Map {
         }
     }
 
-    fn remove_entity(&self, entity: @Entity) {
+    pub fn remove_entity(&mut self, entity: @mut Entity) {
         match entity.location {
-            OnFloor(copy point) => {
+            OnFloor(point) => {
                 let tile = self.grid[point.x][point.y];
                 match tile.creature {
-                    Some(copy creature) if managed::ptr_eq(entity, creature) => {
+                    Some(creature) if managed::mut_ptr_eq(entity, creature) => {
                         entity.location = Nowhere;
                         tile.creature = None;
                     }
@@ -73,18 +74,19 @@ impl Map {
         }
     }
 
-    fn move_entity(&self, entity: @Entity, dx: int, dy: int) {
+    pub fn move_entity(&mut self, entity: @mut Entity, dx: int, dy: int) {
         match entity.location {
-            OnFloor(copy point) => {
+            OnFloor(point) => {
                 let new_x = point.x + dx;
                 let new_y = point.y + dy;
                 // TODO point type?
                 // TODO check in bounds...
                 let target_tile = self.grid[new_x][new_y];
                 // TODO these checks should already be done by the time we get here
-                if (copy target_tile.architecture).is_passable() && target_tile.creature.is_none() {
+                if (target_tile.architecture).is_passable() && target_tile.creature.is_none() {
+                    self.grid[point.x][point.y].creature = None;
                     entity.location = OnFloor(Point{ x: new_x, y: new_y });
-                    self.grid[new_x][new_y].creature <-> self.grid[point.x][point.y].creature;
+                    target_tile.creature = Some(entity);
                 }
             }
             _ => fail!(~"Can't move an entity that's not on the dungeon floor"),
@@ -93,9 +95,9 @@ impl Map {
 }
 
 pub struct Tile {
-    mut architecture: @Entity,
-    mut creature: Option<@Entity>,
-    mut items: ~[@Entity],
+    architecture: @mut Entity,
+    creature: Option<@mut Entity>,
+    items: ~[@mut Entity],
 }
 
 
@@ -103,15 +105,18 @@ pub struct Tile {
 static TIC_SIZE: uint = 48;
 
 pub struct World {
-    map: @Map,
-    mut clock: uint,
+    map: @mut Map,
+    clock: uint,
 }
-pub fn new_game() -> @World {
-    return @World{ map: generate_map(), clock: 0 };
+pub fn new_game() -> @mut World {
+    return @mut World{ map: generate_map(), clock: 0 };
 }
 impl World {
     /** Runs the game forever.  Ish. */
-    fn run(@self, interface: &Interface) {
+    pub fn run(@mut self, interface: @Interface) {
+        // TODO this should really take a & but i keep tripping over
+        // https://github.com/mozilla/rust/issues/5708
+
         // Draw the game world first
         interface.redraw(self);
 
@@ -123,11 +128,11 @@ impl World {
         // changes, etc.!  should possibly be an attribute of the map, so it
         // can be responsible for maintaining the order
 
-        let mut actors: ~[@Entity] = ~[];
+        let mut actors: ~[@mut Entity] = ~[];
         for uint::range(0, self.map.width()) |x| {
             for uint::range(0, self.map.height()) |y| {
                 match self.map.grid[x][y].creature {
-                    Some(copy creature) => {
+                    Some(creature) => {
                         actors.push(creature);
                     }
                     None => {}
@@ -137,7 +142,7 @@ impl World {
 
         // Advance time indefinitely, one loop at a...  time
         loop {
-            for actors.each |actor| {
+            for actors.iter().advance |actor| {
                 // Skip actors that no longer exist
                 // TODO yeah this sucks  :D
                 match actor.location {
@@ -146,8 +151,8 @@ impl World {
                 }
 
                 while actor.spent_subtics < TIC_SIZE {
-                    match actor.act(self, interface) {
-                        Some(action) => action.execute(self, interface),
+                    match actor.act(self, &interface) {
+                        Some(action) => action.execute(self, &interface),
                         None => {}
                     }
 
