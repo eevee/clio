@@ -113,7 +113,7 @@ pub fn new_game() -> @mut World {
 }
 impl World {
     /** Runs the game forever.  Ish. */
-    pub fn run(@mut self, interface: @Interface) {
+    pub fn run(@mut self, interface: &mut Interface) {
         // TODO this should really take a & but i keep tripping over
         // https://github.com/mozilla/rust/issues/5708
 
@@ -129,8 +129,8 @@ impl World {
         // can be responsible for maintaining the order
 
         let mut actors: ~[@mut Entity] = ~[];
-        for uint::range(0, self.map.width()) |x| {
-            for uint::range(0, self.map.height()) |y| {
+        for x in range(0, self.map.width()) {
+            for y in range(0, self.map.height()) {
                 match self.map.grid[x][y].creature {
                     Some(creature) => {
                         actors.push(creature);
@@ -142,7 +142,7 @@ impl World {
 
         // Advance time indefinitely, one loop at a...  time
         loop {
-            for actors.iter().advance |actor| {
+            for actor in actors.iter() {
                 // Skip actors that no longer exist
                 // TODO yeah this sucks  :D
                 match actor.location {
@@ -151,8 +151,8 @@ impl World {
                 }
 
                 while actor.spent_subtics < TIC_SIZE {
-                    match actor.act(self, &interface) {
-                        Some(action) => action.execute(self, &interface),
+                    match actor.act(self, interface) {
+                        Some(action) => action.execute(self, interface),
                         None => {}
                     }
 

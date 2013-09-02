@@ -17,17 +17,17 @@ use interface::Interface;
 use world::Map;
 use world::World;
 
-struct TerminalInterface<'self> {
-    term: ~amulet::ll::Terminal,
-    main_window: Canvas<'self>,
-    status_window: Canvas<'self>,
-    message_window: Canvas<'self>,
+struct TerminalInterface {
+    term: ~amulet::Terminal,
+    main_window: Canvas,
+    status_window: Canvas,
+    message_window: Canvas,
 }
 // XXX this should really return an Interface, but it cannot due
 // to Rust bug #3794, which basically prevents me from ever
 // borrowing the resulting ~Interface
 pub fn make_terminal_interface() -> TerminalInterface {
-    let term = ~amulet::ll::Terminal();
+    let term = ~amulet::Terminal::new();
     let main_window = term.enter_fullscreen();
 
     // Create persistent status areas
@@ -41,8 +41,8 @@ pub fn make_terminal_interface() -> TerminalInterface {
         message_window: message_window,
     };// as ~Interface;
 }
-impl<'self> Interface for TerminalInterface<'self> {
-    fn next_action(&self, world: &World) -> ~Action:'static {
+impl Interface for TerminalInterface {
+    fn next_action(&mut self, world: &World) -> ~Action:'static {
         let map = world.map;
 
         // Keep grabbing input until there's an actionable keypress
@@ -75,17 +75,18 @@ impl<'self> Interface for TerminalInterface<'self> {
         }
     }
 
-    fn message(&self, s: &str) {
+    fn message(&mut self, s: &str) {
         self.message_window.write(fmt!("%s\n", s));
     }
 
-    fn redraw(&self, world: &World) {
+    fn redraw(&mut self, world: &World) {
         self.draw_map(world);
         self.draw_status(world);
         self.draw_messages(world);
     }
 
-    fn end(&self) {
+    #[fixed_stack_segment]
+    fn end(&mut self) {
         self.main_window.read_key();
         // TODO this probably should (a) do more stuff and (b) let the ending
         // bubble up to the top instead of calling exit here
@@ -94,7 +95,12 @@ impl<'self> Interface for TerminalInterface<'self> {
         }
     }
 }
-impl<'self> TerminalInterface<'self> {
+
+fn _draw_entity(window: &mut Canvas, entity: @mut Entity) {
+    window.attrwrite(fmt!("%c", entity.proto.display), entity.proto.style);
+}
+
+impl TerminalInterface {
     fn pick_direction_action(&self, world: &World, direction: Offset) -> ~Action:'static {
         let player = world.map.player;
         let maybe_tile = world.map.tile_relative(player, direction);
@@ -113,14 +119,10 @@ impl<'self> TerminalInterface<'self> {
     }
 
 
-    fn _draw_entity(&self, window: &mut Canvas, entity: @mut Entity) {
-        window.attrwrite(fmt!("%c", entity.proto.display), entity.proto.style);
-    }
-
     fn draw_map(&mut self, world: &World) {
         let map = world.map;
-        for uint::range(0, map.width()) |x| {
-            for uint::range(0, map.height()) |y| {
+        for x in range(0, map.width()) {
+            for y in range(0, map.height()) {
                 let tile = map.grid[x][y];
                 self.main_window.move(y, x);
                 let entity = match tile.creature {
@@ -134,7 +136,7 @@ impl<'self> TerminalInterface<'self> {
                         }
                     }
                 };
-                self._draw_entity(&self.main_window, entity);
+                _draw_entity(&mut self.main_window, entity);
             }
         }
 
@@ -143,7 +145,7 @@ impl<'self> TerminalInterface<'self> {
 
     fn draw_status(&mut self, world: &World) {
         let map = world.map;
-        let mut statwin = self.status_window;
+        let mut statwin = &mut self.status_window;
 
         statwin.clear();
         statwin.write(fmt!("⌛ %u", world.clock));
@@ -152,7 +154,7 @@ impl<'self> TerminalInterface<'self> {
         statwin.write(fmt!("♥ "));
         let mut healthbar = ~"";
         healthbar.reserve(map.player.health);
-        for (copy map.player.health).times {
+        do map.player.health.times {
             healthbar.push_char('█');
         }
         statwin.attrwrite(healthbar, Style().fg(2));
@@ -160,8 +162,8 @@ impl<'self> TerminalInterface<'self> {
 
         statwin.move(2, 0);
         statwin.write("inventory: ");
-        for uint::range(0, map.player.contents.len()) |i| {
-            self._draw_entity(&statwin, map.player.contents[i]);
+        for i in range(0, map.player.contents.len()) {
+            _draw_entity(statwin, map.player.contents[i]);
         }
 
         let tile = map.player_tile();
@@ -169,14 +171,14 @@ impl<'self> TerminalInterface<'self> {
             statwin.move(4, 0);
             statwin.write("you see here:");
             statwin.move(5, 4);
-            for uint::range(0, tile.items.len()) |_i| {
+            for _i in range(0, tile.items.len()) {
                 statwin.write("an item");
             }
         }
         statwin.repaint();
     }
 
-    fn draw_messages(&self, _world: &World) {
+    fn draw_messages(&mut self, _world: &World) {
         self.message_window.repaint();
     }
 }

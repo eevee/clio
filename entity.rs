@@ -113,7 +113,7 @@ impl Entity {
     }
 
     // BEHAVIOR
-    pub fn act(@mut self, world: &mut World, interface: &@Interface) -> Option<~Action:'static> {
+    pub fn act(@mut self, world: &mut World, interface: &mut Interface) -> Option<~Action:'static> {
         let player = world.map.player;
 
         if managed::mut_ptr_eq(self, player) {
@@ -152,7 +152,7 @@ impl Entity {
 
 // Actions...  oh boy.
 pub trait Action {
-    pub fn execute(&self, world: &mut World, interface: &@Interface);
+    fn execute(&self, world: &mut World, interface: &mut Interface);
 }
 
 /** `actor` strikes `target`. */
@@ -161,7 +161,7 @@ pub struct AttackAction {
     target: @mut Entity,
 }
 impl Action for AttackAction {
-    fn execute(&self, world: &mut World, interface: &@Interface) {
+    fn execute(&self, world: &mut World, interface: &mut Interface) {
         if ref_eq(self.target.proto, &PLAYER) {
             interface.message("it hits you!");
         }
@@ -190,7 +190,7 @@ pub struct MoveAction {
     offset: Offset,
 }
 impl Action for MoveAction {
-    fn execute(&self, world: &mut World, _interface: &@Interface) {
+    fn execute(&self, world: &mut World, _interface: &mut Interface) {
         world.map.move_entity(self.actor, self.offset.dx, self.offset.dy);
     }
 }
@@ -200,6 +200,6 @@ pub struct WaitAction {
     actor: @mut Entity,
 }
 impl Action for WaitAction {
-    fn execute(&self, _world: &mut World, _interface: &@Interface) {
+    fn execute(&self, _world: &mut World, _interface: &mut Interface) {
     }
 }

@@ -22,7 +22,7 @@ use world::Tile;
 fn roll(trials: uint, sides: uint) -> uint {
     let mut rng = task_rng();
     let mut rv: uint = 0;
-    for trials.times {
+    do trials.times {
         rv += rng.gen_uint_range(0, sides);
     }
     return rv;
@@ -94,20 +94,20 @@ impl Region {
 
     fn draw_onto(&self, canvas: &[~[@mut Tile]]) {
         // Top and bottom walls
-        for uint::range(self.x, self.x + self.width) |x| {
+        for x in range(self.x, self.x + self.width) {
             canvas[x][self.y].architecture = entity::WALL.make_entity();
             canvas[x][self.y + self.height - 1].architecture = entity::WALL.make_entity();
         }
 
         // Left and right walls (don't overwrite corners!)
-        for uint::range(self.y + 1, self.y + self.height - 1) |y| {
+        for y in range(self.y + 1, self.y + self.height - 1) {
             canvas[self.x][y].architecture = entity::WALL.make_entity();
             canvas[self.x + self.width - 1][y].architecture = entity::WALL.make_entity();
         }
 
         // Interior
-        for uint::range(self.x + 1, self.x + self.width - 1) |x| {
-            for uint::range(self.y + 1, self.y + self.height - 1) |y| {
+        for x in range(self.x + 1, self.x + self.width - 1) {
+            for y in range(self.y + 1, self.y + self.height - 1) {
                 canvas[x][y].architecture = entity::FLOOR.make_entity();
             }
         }
@@ -161,7 +161,7 @@ pub fn generate_map() -> @mut Map {
     let mid_x = task_rng().gen_uint_range(left_room.x + left_room.width, right_room.x + 1);
 
     // cut through the walls!
-    for uint::range(left_room.x + left_room.width - 1, right_room.x + 1) |x| {
+    for x in range(left_room.x + left_room.width - 1, right_room.x + 1) {
         if x <= mid_x {
             canvas[x][start_y].architecture = entity::PASSAGE.make_entity();
         }
@@ -173,7 +173,7 @@ pub fn generate_map() -> @mut Map {
         swap(&mut start_y, &mut end_y);
     }
     if end_y - start_y > 1 {
-        for uint::range(start_y + 1, end_y) |y| {
+        for y in range(start_y + 1, end_y) {
             canvas[mid_x][y].architecture = entity::PASSAGE.make_entity();
         }
     }
